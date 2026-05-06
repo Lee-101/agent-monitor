@@ -1,0 +1,415 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main style="background: var(--bg-deep); overflow-y: auto; padding: 0; grid-column: 1 / -1;">
+
+    <!-- ═══ Header ═══ -->
+    <div style="padding: 16px 28px 0; display: flex; align-items: center; gap: 16px;">
+        <a href="/" class="back-btn">
+            <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+            总览
+        </a>
+        <div>
+            <div class="font-orbitron text-lg font-bold tracking-wider text-white" id="agent-title">--</div>
+            <div style="font-size: 0.68rem; color: var(--text-dim); font-family: 'JetBrains Mono';" id="agent-subtitle">智能体详细指标</div>
+        </div>
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
+            <span class="status-indicator unknown" id="detail-dot"></span>
+            <span style="font-size: 0.82rem; font-weight: 500;" id="detail-status">--</span>
+        </div>
+    </div>
+
+    <!-- ═══ Row 1: Core Gauges ═══ -->
+    <div style="display: grid; grid-template-columns: 180px 1fr 1fr 1fr; gap: 12px; padding: 16px 28px;">
+
+        <!-- Status card -->
+        <div class="panel" style="padding: 16px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <div id="detail-big-status" class="font-orbitron text-xl font-bold" style="margin-bottom: 6px;">--</div>
+            <div style="font-size: 0.65rem; color: var(--text-dim); font-family: 'JetBrains Mono';">PID: <span id="detail-pid">--</span></div>
+        </div>
+
+        <!-- CPU gauge -->
+        <div class="panel" style="padding: 14px; text-align: center;">
+            <div style="position: relative; width: 100px; height: 100px; margin: 0 auto;">
+                <svg viewBox="0 0 120 120" class="gauge-svg" style="width: 100%; height: 100%;">
+                    <circle cx="60" cy="60" r="48" class="gauge-track" stroke-width="7" />
+                    <circle id="detail-cpu-fill" cx="60" cy="60" r="48" class="gauge-fill" stroke-width="7"
+                        stroke="var(--cyan)" stroke-dasharray="301.59" stroke-dashoffset="301.59" />
+                </svg>
+                <div class="gauge-label">
+                    <div class="gauge-value" id="detail-cpu-val" style="font-size: 1.1rem;">--</div>
+                </div>
+            </div>
+            <div style="font-size: 0.68rem; color: var(--text-secondary); margin-top: 6px; text-transform: uppercase; letter-spacing: 0.1em;">CPU</div>
+        </div>
+
+        <!-- Memory gauge -->
+        <div class="panel" style="padding: 14px; text-align: center;">
+            <div style="position: relative; width: 100px; height: 100px; margin: 0 auto;">
+                <svg viewBox="0 0 120 120" class="gauge-svg" style="width: 100%; height: 100%;">
+                    <circle cx="60" cy="60" r="48" class="gauge-track" stroke-width="7" />
+                    <circle id="detail-mem-fill" cx="60" cy="60" r="48" class="gauge-fill" stroke-width="7"
+                        stroke="var(--green)" stroke-dasharray="301.59" stroke-dashoffset="301.59" />
+                </svg>
+                <div class="gauge-label">
+                    <div class="gauge-value" id="detail-mem-val" style="font-size: 1.1rem;">--</div>
+                </div>
+            </div>
+            <div style="font-size: 0.68rem; color: var(--text-secondary); margin-top: 6px; text-transform: uppercase; letter-spacing: 0.1em;">内存</div>
+        </div>
+
+        <!-- Uptime + Threads -->
+        <div class="panel" style="padding: 14px; display: flex; flex-direction: column; justify-content: center; gap: 12px;">
+            <div>
+                <div style="font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em;">运行时间</div>
+                <div class="font-orbitron text-xl font-bold" style="color: var(--amber);" id="detail-uptime">--</div>
+            </div>
+            <div>
+                <div style="font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em;">线程数</div>
+                <div class="font-orbitron text-xl font-bold" style="color: var(--cyan);" id="detail-threads">--</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ Row 2: Token & Cost ═══ -->
+    <div style="padding: 0 28px 12px;">
+        <div class="panel" style="padding: 0;">
+            <div class="panel-header">Token 消耗与费用</div>
+            <div style="padding: 16px 20px;">
+                <!-- Big numbers -->
+                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; text-align: center; margin-bottom: 16px;">
+                    <div>
+                        <div class="font-orbitron text-lg font-bold" style="color: var(--cyan);" id="tk-input">0</div>
+                        <div style="font-size: 0.62rem; color: var(--text-dim);">输入 Token</div>
+                    </div>
+                    <div>
+                        <div class="font-orbitron text-lg font-bold" style="color: var(--green);" id="tk-output">0</div>
+                        <div style="font-size: 0.62rem; color: var(--text-dim);">输出 Token</div>
+                    </div>
+                    <div>
+                        <div class="font-orbitron text-lg font-bold" style="color: var(--amber);" id="tk-cache">0</div>
+                        <div style="font-size: 0.62rem; color: var(--text-dim);">缓存 Token</div>
+                    </div>
+                    <div>
+                        <div class="font-orbitron text-lg font-bold" style="color: var(--magenta);" id="tk-cost">$0</div>
+                        <div style="font-size: 0.62rem; color: var(--text-dim);">累计费用</div>
+                    </div>
+                    <div>
+                        <div class="font-orbitron text-lg font-bold" style="color: var(--text-primary);" id="tk-efficiency">--</div>
+                        <div style="font-size: 0.62rem; color: var(--text-dim);">输出/输入比</div>
+                    </div>
+                </div>
+                <!-- Token distribution bar -->
+                <div style="margin-bottom: 8px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span style="font-size: 0.68rem; color: var(--text-secondary);">Token 分布</span>
+                        <span style="font-family: 'JetBrains Mono'; font-size: 0.68rem; color: var(--text-dim);" id="tk-total-label">0</span>
+                    </div>
+                    <div style="height: 10px; background: var(--border-dim); border-radius: 5px; overflow: hidden; display: flex;">
+                        <div id="tk-bar-input" style="height: 100%; background: var(--cyan); transition: width 0.5s;"></div>
+                        <div id="tk-bar-output" style="height: 100%; background: var(--green); transition: width 0.5s;"></div>
+                        <div id="tk-bar-cache" style="height: 100%; background: var(--amber); transition: width 0.5s;"></div>
+                    </div>
+                    <div style="display: flex; gap: 16px; margin-top: 6px;">
+                        <span style="font-size: 0.6rem; display: flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 3px; background: var(--cyan); display: inline-block; border-radius: 1px;"></span><span style="color: var(--text-dim);">输入</span></span>
+                        <span style="font-size: 0.6rem; display: flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 3px; background: var(--green); display: inline-block; border-radius: 1px;"></span><span style="color: var(--text-dim);">输出</span></span>
+                        <span style="font-size: 0.6rem; display: flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 3px; background: var(--amber); display: inline-block; border-radius: 1px;"></span><span style="color: var(--text-dim);">缓存</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ Row 3: Config + Session + Activity (3 columns) ═══ -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; padding: 0 28px 12px;">
+
+        <!-- Model & Config -->
+        <div class="panel" style="padding: 0;">
+            <div class="panel-header">模型与配置</div>
+            <div style="padding: 12px 16px;" id="config-table">
+                <div style="color: var(--text-dim); font-size: 0.75rem; text-align: center; padding: 12px;">加载中...</div>
+            </div>
+        </div>
+
+        <!-- Session Info -->
+        <div class="panel" style="padding: 0;">
+            <div class="panel-header">会话信息</div>
+            <div style="padding: 12px 16px;" id="session-table">
+                <div style="color: var(--text-dim); font-size: 0.75rem; text-align: center; padding: 12px;">加载中...</div>
+            </div>
+        </div>
+
+        <!-- Activity -->
+        <div class="panel" style="padding: 0;">
+            <div class="panel-header">活动统计</div>
+            <div style="padding: 12px 16px;" id="activity-table">
+                <div style="color: var(--text-dim); font-size: 0.75rem; text-align: center; padding: 12px;">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ Row 4: Agent-specific sections (conditional) ═══ -->
+    <div id="extra-sections" style="padding: 0 28px 12px;"></div>
+
+    <!-- ═══ Row 5: Errors & Logs ═══ -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 28px 12px;">
+        <!-- Error Summary -->
+        <div class="panel" style="padding: 0;">
+            <div class="panel-header">错误与告警</div>
+            <div style="padding: 12px 16px;" id="error-table">
+                <div style="color: var(--text-dim); font-size: 0.75rem; text-align: center; padding: 12px;">加载中...</div>
+            </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="panel" style="padding: 0;">
+            <div class="panel-header">趋势图</div>
+            <div style="padding: 12px 16px;">
+                <canvas id="agent-chart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const agentName = "{{ agent_name }}";
+const PREF = agentName + '_';
+
+// Display names
+const NAMES = { claude_code: 'CLAUDE CODE', hermes: 'HERMES AGENT', codex: 'CODEX', openclaw: 'OPEN CLAW' };
+document.getElementById('agent-title').textContent = NAMES[agentName] || agentName.toUpperCase();
+
+// Gauge helper (reuse from base.html setGauge)
+function setDetailGauge(fillId, valId, value, max) {
+    const pct = Math.min(value / max, 1);
+    const circle = document.getElementById(fillId);
+    if (!circle) return;
+    const r = parseFloat(circle.getAttribute('r'));
+    const c = 2 * Math.PI * r;
+    circle.style.strokeDasharray = c;
+    circle.style.strokeDashoffset = c * (1 - pct);
+    document.getElementById(valId).textContent = value.toFixed(1) + '%';
+}
+
+function metricRow(label, value, color) {
+    return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.03);font-size:0.78rem;">
+        <span style="color:var(--text-secondary);">${label}</span>
+        <span style="color:${color || 'var(--text-primary)'};font-family:'JetBrains Mono';font-weight:500;">${value}</span>
+    </div>`;
+}
+
+// Chart
+const agentChart = new Chart(document.getElementById('agent-chart'), {
+    type: 'line',
+    data: { labels: [], datasets: [
+        { label: 'CPU %', data: [], borderColor: '#00e5ff', backgroundColor: '#00e5ff10', fill: true, tension: 0.4, borderWidth: 1.5 },
+        { label: '内存 %', data: [], borderColor: '#00ff88', backgroundColor: '#00ff8810', fill: true, tension: 0.4, borderWidth: 1.5 },
+    ]},
+    options: {
+        responsive: true, animation: false,
+        scales: {
+            y: { min: 0, max: 100, ticks: { color: '#4a5568', font: { size: 9, family: 'JetBrains Mono' } }, grid: { color: '#1a274430' } },
+            x: { ticks: { color: '#4a5568', font: { size: 8, family: 'JetBrains Mono' }, maxTicksLimit: 8 }, grid: { display: false } }
+        },
+        plugins: { legend: { labels: { color: '#7b8ba3', font: { size: 10, family: 'JetBrains Mono' } } } },
+        elements: { point: { radius: 0 } }
+    }
+});
+
+window.onMetricUpdate = function(data) {
+    const m = data[agentName]?.metrics || [];
+    const g = (n, d) => getMetricValue(m, PREF + n, d);
+    const running = g('running');
+
+    // ── Header status ──
+    const dot = document.getElementById('detail-dot');
+    dot.className = `status-indicator ${running ? 'running' : 'stopped'}`;
+    const statusEl = document.getElementById('detail-status');
+    statusEl.textContent = running ? '运行中' : '未运行';
+    statusEl.style.color = running ? 'var(--green)' : 'var(--red)';
+    const bigStatus = document.getElementById('detail-big-status');
+    bigStatus.textContent = running ? 'ONLINE' : 'OFFLINE';
+    bigStatus.style.color = running ? 'var(--green)' : 'var(--red)';
+
+    // PID
+    const pidMetric = getMetric(m, PREF + 'running');
+    document.getElementById('detail-pid').textContent = pidMetric?.tags?.pid || '--';
+
+    // ── Gauges ──
+    const cpuPct = g('cpu_percent') || g('total_cpu') || g('process_cpu');
+    const memPct = g('memory_percent');
+    setDetailGauge('detail-cpu-fill', 'detail-cpu-val', cpuPct, 100);
+    setDetailGauge('detail-mem-fill', 'detail-mem-val', memPct, 100);
+
+    // CPU color
+    const cpuFill = document.getElementById('detail-cpu-fill');
+    cpuFill.style.stroke = cpuPct > 90 ? 'var(--red)' : cpuPct > 70 ? 'var(--amber)' : 'var(--cyan)';
+
+    // Uptime & threads
+    document.getElementById('detail-uptime').textContent = formatDuration(g('uptime') || g('process_uptime'));
+    document.getElementById('detail-threads').textContent = g('threads') || g('process_threads') || g('active_threads') || '--';
+
+    // ── Token & Cost ──
+    const tIn = g('input_tokens') || g('total_input_tokens') || g('total_tokens') || 0;
+    const tOut = g('output_tokens') || g('total_output_tokens') || 0;
+    const tCache = g('cache_read_tokens') || g('hour_cache_tokens') || 0;
+    const cost = g('cost_usd') || g('total_cost_usd') || 0;
+    const tTotal = tIn + tOut + tCache || 1;
+
+    document.getElementById('tk-input').textContent = fmtNum(tIn);
+    document.getElementById('tk-output').textContent = fmtNum(tOut);
+    document.getElementById('tk-cache').textContent = fmtNum(tCache);
+    document.getElementById('tk-cost').textContent = '$' + cost.toFixed(4);
+    document.getElementById('tk-efficiency').textContent = tIn > 0 ? (tOut / tIn).toFixed(2) : '--';
+    document.getElementById('tk-total-label').textContent = fmtNum(tTotal);
+
+    document.getElementById('tk-bar-input').style.width = (tIn / tTotal * 100) + '%';
+    document.getElementById('tk-bar-output').style.width = (tOut / tTotal * 100) + '%';
+    document.getElementById('tk-bar-cache').style.width = (tCache / tTotal * 100) + '%';
+
+    // ── Config table ──
+    let cfgHTML = '';
+    if (agentName === 'codex') {
+        const modelMetric = getMetric(m, 'codex_config_model');
+        const urlMetric = getMetric(m, 'codex_config_base_url');
+        const approvalMetric = getMetric(m, 'codex_approval_mode');
+        cfgHTML += metricRow('模型', modelMetric?.tags?.model || '--', 'var(--cyan)');
+        cfgHTML += metricRow('Base URL', urlMetric?.tags?.url || '--');
+        cfgHTML += metricRow('审批模式', approvalMetric?.tags?.mode || '--');
+        cfgHTML += metricRow('插件数', g('enabled_plugins'));
+    } else if (agentName === 'claude_code') {
+        cfgHTML += metricRow('模型', 'Claude (Anthropic)', 'var(--cyan)');
+        cfgHTML += metricRow('活跃项目', g('active_projects'));
+        cfgHTML += metricRow('会话文件', g('session_files'));
+    } else if (agentName === 'hermes') {
+        const gwRunning = g('gateway_running');
+        cfgHTML += metricRow('网关状态', gwRunning ? '运行中' : '停止', gwRunning ? 'var(--green)' : 'var(--red)');
+        cfgHTML += metricRow('Agent 日志错误', g('agent_errors'));
+        cfgHTML += metricRow('Agent 日志警告', g('agent_warnings'));
+        cfgHTML += metricRow('错误日志行数', g('errors_new_lines'));
+    }
+    document.getElementById('config-table').innerHTML = cfgHTML || metricRow('状态', '无配置数据');
+
+    // ── Session table ──
+    let sessHTML = '';
+    sessHTML += metricRow('总会话数', g('total_sessions') || g('total_threads') || '--');
+    sessHTML += metricRow('活跃会话', g('active_sessions') || g('active_threads') || '--');
+    if (agentName === 'codex') {
+        sessHTML += metricRow('已归档线程', g('archived_threads'));
+        sessHTML += metricRow('活跃目标', g('active_goals'));
+    }
+    if (agentName === 'claude_code') {
+        sessHTML += metricRow('最长会话时长', g('longest_session_duration') > 0 ? formatDuration(g('longest_session_duration') / 1000) : '--');
+        sessHTML += metricRow('最长会话消息', g('longest_session_messages'));
+    }
+    document.getElementById('session-table').innerHTML = sessHTML;
+
+    // ── Activity table ──
+    let actHTML = '';
+    actHTML += metricRow('总消息数', fmtNum(g('total_messages')));
+    actHTML += metricRow('总工具调用', fmtNum(g('hour_tool_calls') || g('daily_tool_calls')));
+    if (agentName === 'claude_code') {
+        actHTML += metricRow('今日消息', fmtNum(g('daily_messages')));
+        actHTML += metricRow('今日会话', g('daily_sessions'));
+        actHTML += metricRow('今日工具调用', fmtNum(g('daily_tool_calls')));
+        actHTML += metricRow('新增交互', g('new_interactions'));
+    }
+    if (agentName === 'hermes') {
+        actHTML += metricRow('小时消息', fmtNum(g('hour_messages')));
+        actHTML += metricRow('小时费用', '$' + g('hour_cost_usd').toFixed(6));
+    }
+    if (agentName === 'codex') {
+        actHTML += metricRow('子代理生成', g('subagent_spawns'));
+        actHTML += metricRow('当前线程Token', fmtNum(g('current_thread_tokens')));
+    }
+    document.getElementById('activity-table').innerHTML = actHTML;
+
+    // ── Extra sections (agent-specific) ──
+    let extra = '';
+    if (agentName === 'codex') {
+        const goalBudget = g('goal_token_budget');
+        const goalUsed = g('goal_tokens_used');
+        const goalPct = goalBudget > 0 ? (goalUsed / goalBudget * 100) : 0;
+        extra += `<div class="panel" style="padding: 0; margin-bottom: 12px;">
+            <div class="panel-header">目标追踪</div>
+            <div style="padding: 12px 16px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;text-align:center;margin-bottom:12px;">
+                    <div><div class="font-orbitron text-lg font-bold" style="color:var(--cyan);">${g('active_goals')}</div><div style="font-size:0.62rem;color:var(--text-dim);">活跃目标</div></div>
+                    <div><div class="font-orbitron text-lg font-bold" style="color:var(--amber);">${fmtNum(goalBudget)}</div><div style="font-size:0.62rem;color:var(--text-dim);">Token 预算</div></div>
+                    <div><div class="font-orbitron text-lg font-bold" style="color:var(--magenta);">${fmtNum(goalUsed)}</div><div style="font-size:0.62rem;color:var(--text-dim);">已用 Token</div></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:0.68rem;">
+                    <span style="color:var(--text-secondary);">预算用量</span>
+                    <span style="color:var(--text-primary);font-family:'JetBrains Mono';">${goalPct.toFixed(1)}%</span>
+                </div>
+                <div style="height:6px;background:var(--border-dim);border-radius:3px;overflow:hidden;">
+                    <div style="height:100%;width:${Math.min(goalPct, 100)}%;background:${goalPct > 90 ? 'var(--red)' : goalPct > 70 ? 'var(--amber)' : 'var(--cyan)'};border-radius:3px;transition:width 0.5s;"></div>
+                </div>
+            </div>
+        </div>`;
+
+        // Agent jobs
+        const jobs = getMetric(m, 'codex_agent_jobs');
+        if (jobs) {
+            extra += `<div class="panel" style="padding: 0;">
+                <div class="panel-header">代理任务</div>
+                <div style="padding: 12px 16px;">
+                    ${metricRow('任务状态 (' + (jobs.tags?.status || '?') + ')', jobs.value)}
+                </div>
+            </div>`;
+        }
+    }
+
+    if (agentName === 'hermes') {
+        // Hourly vs total comparison
+        const hIn = g('hour_input_tokens'), hOut = g('hour_output_tokens');
+        extra += `<div class="panel" style="padding: 0;">
+            <div class="panel-header">小时级统计</div>
+            <div style="padding: 12px 16px;">
+                ${metricRow('小时输入Token', fmtNum(hIn), 'var(--cyan)')}
+                ${metricRow('小时输出Token', fmtNum(hOut), 'var(--green)')}
+                ${metricRow('小时缓存Token', fmtNum(g('hour_cache_tokens')), 'var(--amber)')}
+                ${metricRow('小时消息数', fmtNum(g('hour_messages')))}
+                ${metricRow('小时工具调用', fmtNum(g('hour_tool_calls')))}
+                ${metricRow('小时费用', '$' + g('hour_cost_usd').toFixed(6), 'var(--magenta)')}
+            </div>
+        </div>`;
+    }
+    document.getElementById('extra-sections').innerHTML = extra;
+
+    // ── Error table ──
+    let errHTML = '';
+    errHTML += metricRow('遥测错误文件', g('telemetry_error_files'));
+    errHTML += metricRow('最近错误', g('recent_errors'), g('recent_errors') > 0 ? 'var(--red)' : 'var(--text-primary)');
+    errHTML += metricRow('小时错误', g('hour_errors'), g('hour_errors') > 10 ? 'var(--red)' : 'var(--text-primary)');
+    if (agentName === 'codex') {
+        errHTML += metricRow('错误率', g('error_rate').toFixed(2) + '/min');
+        errHTML += metricRow('错误模块数', g('error_modules'));
+    }
+    if (agentName === 'hermes') {
+        errHTML += metricRow('错误日志错误', g('errors_errors'), 'var(--red)');
+        errHTML += metricRow('错误日志警告', g('errors_warnings'), 'var(--amber)');
+        errHTML += metricRow('错误率', g('errors_errors_per_min').toFixed(2) + '/min');
+    }
+    document.getElementById('error-table').innerHTML = errHTML;
+
+    // ── Chart ──
+    const t = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    agentChart.data.labels.push(t);
+    agentChart.data.datasets[0].data.push(cpuPct);
+    agentChart.data.datasets[1].data.push(memPct);
+    if (agentChart.data.labels.length > 60) {
+        agentChart.data.labels.shift();
+        agentChart.data.datasets.forEach(d => d.data.shift());
+    }
+    agentChart.update('none');
+};
+
+// Initial load
+fetch(`/api/agents/${agentName}`).then(r => r.json()).then(data => {
+    if (data.metrics?.length) window.onMetricUpdate({ [agentName]: data });
+});
+</script>
+{% endblock %}

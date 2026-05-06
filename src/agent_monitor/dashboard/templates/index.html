@@ -1,0 +1,616 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- ═══════════════ LEFT COLUMN: System Status ═══════════════ -->
+<aside style="background: var(--bg-panel); overflow-y: auto; padding: 0;">
+
+    <!-- Gauges Grid -->
+    <div class="panel-header">系统状态</div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px;">
+
+        <!-- CPU Gauge -->
+        <div class="gauge-container" style="padding: 8px 0;">
+            <svg viewBox="0 0 120 120" class="gauge-svg" style="width: 100%; max-width: 120px; margin: 0 auto; display: block;">
+                <circle cx="60" cy="60" r="50" class="gauge-track" stroke-width="8" />
+                <circle id="cpu-gauge-fill" cx="60" cy="60" r="50" class="gauge-fill" stroke-width="8"
+                    stroke="var(--cyan)" stroke-dasharray="314.16" stroke-dashoffset="314.16" />
+            </svg>
+            <div class="gauge-label">
+                <div class="gauge-value" id="cpu-gauge-value">--</div>
+                <div class="gauge-name">处理器</div>
+            </div>
+        </div>
+
+        <!-- Memory Gauge -->
+        <div class="gauge-container" style="padding: 8px 0;">
+            <svg viewBox="0 0 120 120" class="gauge-svg" style="width: 100%; max-width: 120px; margin: 0 auto; display: block;">
+                <circle cx="60" cy="60" r="50" class="gauge-track" stroke-width="8" />
+                <circle id="mem-gauge-fill" cx="60" cy="60" r="50" class="gauge-fill" stroke-width="8"
+                    stroke="var(--green)" stroke-dasharray="314.16" stroke-dashoffset="314.16" />
+            </svg>
+            <div class="gauge-label">
+                <div class="gauge-value" id="mem-gauge-value">--</div>
+                <div class="gauge-name">内存</div>
+            </div>
+        </div>
+
+        <!-- GPU Gauge -->
+        <div class="gauge-container" style="padding: 8px 0;">
+            <svg viewBox="0 0 120 120" class="gauge-svg" style="width: 100%; max-width: 120px; margin: 0 auto; display: block;">
+                <circle cx="60" cy="60" r="50" class="gauge-track" stroke-width="8" />
+                <circle id="gpu-gauge-fill" cx="60" cy="60" r="50" class="gauge-fill" stroke-width="8"
+                    stroke="var(--amber)" stroke-dasharray="314.16" stroke-dashoffset="314.16" />
+            </svg>
+            <div class="gauge-label">
+                <div class="gauge-value" id="gpu-gauge-value">--</div>
+                <div class="gauge-name">显卡</div>
+            </div>
+        </div>
+
+        <!-- Temperature Gauge -->
+        <div class="gauge-container" style="padding: 8px 0;">
+            <svg viewBox="0 0 120 120" class="gauge-svg" style="width: 100%; max-width: 120px; margin: 0 auto; display: block;">
+                <circle cx="60" cy="60" r="50" class="gauge-track" stroke-width="8" />
+                <circle id="temp-gauge-fill" cx="60" cy="60" r="50" class="gauge-fill" stroke-width="8"
+                    stroke="var(--magenta)" stroke-dasharray="314.16" stroke-dashoffset="314.16" />
+            </svg>
+            <div class="gauge-label">
+                <div class="gauge-value" id="temp-gauge-value">--</div>
+                <div class="gauge-name">温度</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail Metrics -->
+    <div style="padding: 0 16px 12px;">
+        <div class="panel" style="padding: 12px;">
+            <div class="metric-row">
+                <span class="metric-label">处理器频率</span>
+                <span class="metric-value" id="cpu-freq">--</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">内存用量</span>
+                <span class="metric-value" id="mem-detail">--</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">显存用量</span>
+                <span class="metric-value" id="gpu-mem-detail">--</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">GPU 功耗</span>
+                <span class="metric-value" id="gpu-power">--</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">GPU 风扇</span>
+                <span class="metric-value" id="gpu-fan">--</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Network & Disk -->
+    <div class="panel-header">网络 & 磁盘</div>
+    <div style="padding: 12px 16px;">
+        <div class="panel" style="padding: 12px;">
+            <div class="metric-row">
+                <span class="metric-label">上行速率</span>
+                <span class="metric-value" id="net-send">--</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">下行速率</span>
+                <span class="metric-value" id="net-recv">--</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">磁盘读取</span>
+                <span class="metric-value" id="disk-read">--</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">磁盘写入</span>
+                <span class="metric-value" id="disk-write">--</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts -->
+    <div class="panel-header">告警信息</div>
+    <div style="padding: 12px 16px;" id="alert-list">
+        <div style="color: var(--text-dim); font-size: 0.75rem; text-align: center; padding: 16px;">暂无告警</div>
+    </div>
+</aside>
+
+<!-- ═══════════════ CENTER COLUMN: Agent Status ═══════════════ -->
+<main style="background: var(--bg-deep); overflow-y: auto; padding: 16px;">
+
+    <div class="flex items-center justify-between mb-4">
+        <div class="panel-header" style="padding: 0; border: none;">智能体监控</div>
+        <div class="font-mono text-xs" style="color: var(--text-dim);">
+            活跃: <span style="color: var(--green);" id="active-count">0</span> /
+            总计: <span id="total-count">0</span>
+        </div>
+    </div>
+
+    <!-- Agent Cards Grid -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+
+        <!-- Claude Code -->
+        <div class="agent-card unknown" id="claude-card">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="status-indicator unknown" id="claude-dot"></span>
+                    <span class="font-orbitron text-xs font-semibold tracking-wider text-white">CLAUDE CODE</span>
+                </div>
+                <a href="/agents/claude_code" class="text-xs font-mono" style="color: var(--cyan); text-decoration: none;">详情 &rarr;</a>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px;">
+                <div class="metric-row">
+                    <span class="metric-label">状态</span>
+                    <span class="metric-value" id="claude-status">--</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">进程</span>
+                    <span class="metric-value" id="claude-procs">--</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">会话</span>
+                    <span class="metric-value" id="claude-sessions">--</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">消息</span>
+                    <span class="metric-value" id="claude-msgs">--</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">内存</span>
+                    <span class="metric-value" id="claude-mem">--</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">CPU</span>
+                    <span class="metric-value" id="claude-cpu">--</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">运行时间</span>
+                    <span class="metric-value" id="claude-uptime">--</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">输入Token</span>
+                    <span class="metric-value" id="claude-tokens">--</span>
+                </div>
+            </div>
+            <!-- Mini bar: memory usage -->
+            <div style="margin-top: 10px;">
+                <div style="height: 3px; background: var(--border-dim); border-radius: 2px; overflow: hidden;">
+                    <div id="claude-mem-bar" style="height: 100%; width: 0%; background: var(--cyan); border-radius: 2px; transition: width 0.5s;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hermes Agent -->
+        <div class="agent-card unknown" id="hermes-card">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="status-indicator unknown" id="hermes-dot"></span>
+                    <span class="font-orbitron text-xs font-semibold tracking-wider text-white">HERMES AGENT</span>
+                </div>
+                <a href="/agents/hermes" class="text-xs font-mono" style="color: var(--cyan); text-decoration: none;">详情 &rarr;</a>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px;">
+                <div class="metric-row">
+                    <span class="metric-label">状态</span>
+                    <span class="metric-value" id="hermes-status">--</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">会话</span>
+                    <span class="metric-value" id="hermes-sessions">--</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">消息</span>
+                    <span class="metric-value" id="hermes-msgs">--</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">费用</span>
+                    <span class="metric-value" id="hermes-cost">--</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">输入Token</span>
+                    <span class="metric-value" id="hermes-in-tokens">--</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">输出Token</span>
+                    <span class="metric-value" id="hermes-out-tokens">--</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">工具调用</span>
+                    <span class="metric-value" id="hermes-tools">--</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">网关</span>
+                    <span class="metric-value" id="hermes-gateway">--</span>
+                </div>
+            </div>
+            <div style="margin-top: 10px;">
+                <div style="height: 3px; background: var(--border-dim); border-radius: 2px; overflow: hidden;">
+                    <div id="hermes-cost-bar" style="height: 100%; width: 0%; background: var(--green); border-radius: 2px; transition: width 0.5s;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Codex -->
+        <div class="agent-card unknown" id="codex-card">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="status-indicator unknown" id="codex-dot"></span>
+                    <span class="font-orbitron text-xs font-semibold tracking-wider text-white">CODEX</span>
+                </div>
+                <a href="/agents/codex" class="text-xs font-mono" style="color: var(--cyan); text-decoration: none;">详情 &rarr;</a>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px;">
+                <div class="metric-row">
+                    <span class="metric-label">状态</span>
+                    <span class="metric-value" id="codex-status">--</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">进程</span>
+                    <span class="metric-value" id="codex-procs">--</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">线程</span>
+                    <span class="metric-value" id="codex-threads">--</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">Token</span>
+                    <span class="metric-value" id="codex-tokens">--</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">内存</span>
+                    <span class="metric-value" id="codex-mem">--</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">错误</span>
+                    <span class="metric-value" id="codex-errors">--</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">模型</span>
+                    <span class="metric-value" id="codex-model" style="font-size: 0.7rem;">--</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">插件</span>
+                    <span class="metric-value" id="codex-plugins">--</span>
+                </div>
+            </div>
+            <div style="margin-top: 10px;">
+                <div style="height: 3px; background: var(--border-dim); border-radius: 2px; overflow: hidden;">
+                    <div id="codex-mem-bar" style="height: 100%; width: 0%; background: var(--amber); border-radius: 2px; transition: width 0.5s;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Open Claw -->
+        <div class="agent-card unknown" id="openclaw-card">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="status-indicator unknown" id="openclaw-dot"></span>
+                    <span class="font-orbitron text-xs font-semibold tracking-wider text-white">OPEN CLAW</span>
+                </div>
+                <a href="/agents/openclaw" class="text-xs font-mono" style="color: var(--cyan); text-decoration: none;">详情 &rarr;</a>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px;">
+                <div class="metric-row">
+                    <span class="metric-label">状态</span>
+                    <span class="metric-value" id="openclaw-status">--</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">安装</span>
+                    <span class="metric-value" id="openclaw-installed">--</span>
+                </div>
+            </div>
+            <div style="margin-top: 24px; text-align: center; color: var(--text-dim); font-size: 0.7rem;">
+                暂未检测到安装
+            </div>
+        </div>
+    </div>
+
+    <!-- Agent Activity Summary Bar -->
+    <div class="panel" style="margin-top: 14px; padding: 12px 16px;">
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; text-align: center;">
+            <div>
+                <div class="font-orbitron text-lg font-bold" style="color: var(--cyan);" id="sum-total-msgs">0</div>
+                <div class="text-xs" style="color: var(--text-dim);">总消息数</div>
+            </div>
+            <div>
+                <div class="font-orbitron text-lg font-bold" style="color: var(--green);" id="sum-total-tokens">0</div>
+                <div class="text-xs" style="color: var(--text-dim);">总Token</div>
+            </div>
+            <div>
+                <div class="font-orbitron text-lg font-bold" style="color: var(--amber);" id="sum-total-cost">$0</div>
+                <div class="text-xs" style="color: var(--text-dim);">总费用</div>
+            </div>
+            <div>
+                <div class="font-orbitron text-lg font-bold" style="color: var(--magenta);" id="sum-total-errors">0</div>
+                <div class="text-xs" style="color: var(--text-dim);">错误数</div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- ═══════════════ RIGHT COLUMN: Ops Overview ═══════════════ -->
+<aside style="background: var(--bg-panel); overflow-y: auto; padding: 0; display: flex; flex-direction: column;">
+
+    <!-- Agent Resource Summary -->
+    <div class="panel-header">智能体资源</div>
+    <div style="padding: 14px 16px;">
+        <div class="panel" style="padding: 16px;">
+            <!-- Big numbers -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center; margin-bottom: 16px;">
+                <div>
+                    <div class="font-orbitron text-lg font-bold" style="color: var(--cyan);" id="res-procs">0</div>
+                    <div style="font-size: 0.62rem; color: var(--text-dim); letter-spacing: 0.05em;">进程数</div>
+                </div>
+                <div>
+                    <div class="font-orbitron text-lg font-bold" style="color: var(--green);" id="res-threads">0</div>
+                    <div style="font-size: 0.62rem; color: var(--text-dim); letter-spacing: 0.05em;">线程数</div>
+                </div>
+                <div>
+                    <div class="font-orbitron text-lg font-bold" style="color: var(--amber);" id="res-mem-total">0</div>
+                    <div style="font-size: 0.62rem; color: var(--text-dim); letter-spacing: 0.05em;">总内存</div>
+                </div>
+            </div>
+
+            <!-- CPU stacked bar -->
+            <div style="margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <span style="font-size: 0.7rem; color: var(--text-secondary);">CPU 占用</span>
+                    <span style="font-family: 'JetBrains Mono'; font-size: 0.72rem; color: var(--text-primary);" id="res-cpu-pct">0%</span>
+                </div>
+                <div class="res-track" id="res-cpu-bar"></div>
+                <div style="display: flex; gap: 12px; margin-top: 6px; flex-wrap: wrap;" id="res-cpu-legend"></div>
+            </div>
+
+            <!-- Memory stacked bar -->
+            <div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <span style="font-size: 0.7rem; color: var(--text-secondary);">内存占用</span>
+                    <span style="font-family: 'JetBrains Mono'; font-size: 0.72rem; color: var(--text-primary);" id="res-mem-pct">0 MB</span>
+                </div>
+                <div class="res-track" id="res-mem-bar"></div>
+                <div style="display: flex; gap: 12px; margin-top: 6px; flex-wrap: wrap;" id="res-mem-legend"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Disk Usage -->
+    <div class="panel-header">磁盘使用</div>
+    <div style="padding: 12px 16px;">
+        <div class="panel" style="padding: 12px;" id="disk-bars">
+            <div style="color: var(--text-dim); font-size: 0.75rem; text-align: center;">加载中...</div>
+        </div>
+    </div>
+
+    <!-- Event Log -->
+    <div class="panel-header" style="flex-shrink: 0;">
+        事件日志
+        <span style="margin-left: auto; font-size: 0.58rem; color: var(--text-dim); font-family: 'JetBrains Mono';" id="evt-count">0</span>
+    </div>
+    <div style="flex: 1; min-height: 0; padding: 6px 8px;" class="event-log-scroll" id="evt-log">
+        <div style="color: var(--text-dim); font-size: 0.72rem; text-align: center; padding: 24px 0;">等待事件...</div>
+    </div>
+</aside>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ═══════════ EVENT LOG ═══════════
+const MAX_EVT = 60;
+const evtBuf = [];
+const _prevRun = {}, _prevErr = {};
+
+function addEvt(src, lvl, msg) {
+    const ts = new Date().toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    evtBuf.unshift({ ts, src, lvl, msg });
+    if (evtBuf.length > MAX_EVT) evtBuf.pop();
+    renderEvt();
+}
+function renderEvt() {
+    const el = document.getElementById('evt-log');
+    if (!el) return;
+    document.getElementById('evt-count').textContent = evtBuf.length;
+    if (!evtBuf.length) return;
+    el.innerHTML = evtBuf.slice(0, 30).map(e =>
+        `<div class="evt-row evt-${e.lvl}"><span class="evt-ts">${e.ts}</span><span class="evt-src">[${e.src}]</span><span class="evt-msg">${e.msg}</span></div>`
+    ).join('');
+}
+
+function detectEvents(data) {
+    const defs = [
+        { name: 'Claude Code', key: 'claude_code', rk: 'claude_code_running', ek: 'claude_code_hour_errors' },
+        { name: 'Hermes', key: 'hermes', rk: 'hermes_running', ek: 'hermes_hour_errors' },
+        { name: 'Codex', key: 'codex', rk: 'codex_running', ek: 'codex_hour_errors' },
+    ];
+    defs.forEach(a => {
+        const m = data[a.key]?.metrics || [];
+        const r = getMetricValue(m, a.rk), e = getMetricValue(m, a.ek);
+        if (_prevRun[a.key] !== undefined && _prevRun[a.key] !== r) addEvt(a.name, r ? 'ok' : 'warning', r ? '已启动' : '已停止');
+        if (_prevErr[a.key] !== undefined && e > _prevErr[a.key] && e > 0) addEvt(a.name, 'error', `错误数 ${_prevErr[a.key]} → ${e}`);
+        _prevRun[a.key] = r; _prevErr[a.key] = e;
+    });
+}
+
+// ═══════════ AGENT RESOURCE BARS ═══════════
+const AGENT_CLR = { 'Claude Code': '#00e5ff', 'Hermes': '#00ff88', 'Codex': '#ffab00' };
+
+function updateRes(data) {
+    const defs = [
+        { name: 'Claude Code', key: 'claude_code', cpuK: 'claude_code_cpu_percent', memK: 'claude_code_memory_rss', procK: 'claude_code_process_count' },
+        { name: 'Hermes', key: 'hermes', cpuK: 'hermes_cpu_percent', memK: 'hermes_memory_rss', procK: 'hermes_process_count' },
+        { name: 'Codex', key: 'codex', cpuK: 'codex_cpu_percent', memK: 'codex_total_memory', procK: 'codex_process_count' },
+    ];
+    let tCpu = 0, tMem = 0, tProc = 0, tThreads = 0;
+    const cpuP = [], memP = [];
+
+    defs.forEach(a => {
+        const m = data[a.key]?.metrics || [];
+        if (!getMetricValue(m, a.key + '_running')) return;
+        const c = getMetricValue(m, a.cpuK), mem = getMetricValue(m, a.memK), p = getMetricValue(m, a.procK) || 1;
+        tCpu += c; tMem += mem; tProc += p;
+        tThreads += getMetricValue(m, a.key + '_active_threads') || 0;
+        cpuP.push({ n: a.name, v: c }); memP.push({ n: a.name, v: mem });
+    });
+
+    document.getElementById('res-procs').textContent = tProc;
+    document.getElementById('res-threads').textContent = tThreads;
+    document.getElementById('res-mem-total').textContent = formatBytes(tMem);
+
+    // CPU bar
+    document.getElementById('res-cpu-pct').textContent = tCpu.toFixed(1) + '%';
+    document.getElementById('res-cpu-bar').innerHTML = cpuP.map(p =>
+        `<div class="res-seg" style="width:${Math.min(p.v, 100)}%;background:${AGENT_CLR[p.n] || '#4a5568'};" title="${p.name}: ${p.v.toFixed(1)}%"></div>`
+    ).join('');
+    document.getElementById('res-cpu-legend').innerHTML = cpuP.map(p =>
+        `<span style="font-size:0.6rem;display:flex;align-items:center;gap:3px;"><span style="width:6px;height:6px;border-radius:50%;background:${AGENT_CLR[p.n]};flex-shrink:0;"></span><span style="color:var(--text-dim);">${p.n}</span></span>`
+    ).join('');
+
+    // Memory bar
+    const memMax = Math.max(tMem * 1.2, 1024 * 1024 * 1024);
+    document.getElementById('res-mem-pct').textContent = formatBytes(tMem);
+    document.getElementById('res-mem-bar').innerHTML = memP.map(p =>
+        `<div class="res-seg" style="width:${Math.min(p.v / memMax * 100, 100)}%;background:${AGENT_CLR[p.n] || '#4a5568'};" title="${p.name}: ${formatBytes(p.value)}"></div>`
+    ).join('');
+    document.getElementById('res-mem-legend').innerHTML = memP.map(p =>
+        `<span style="font-size:0.6rem;display:flex;align-items:center;gap:3px;"><span style="width:6px;height:6px;border-radius:50%;background:${AGENT_CLR[p.n]};flex-shrink:0;"></span><span style="color:var(--text-dim);">${p.n} ${formatBytes(p.v)}</span></span>`
+    ).join('');
+}
+
+// ═══════════ CARD STATE ═══════════
+function setCardState(cardId, dotId, running) {
+    document.getElementById(cardId).className = 'agent-card ' + (running ? 'running' : 'stopped');
+    document.getElementById(dotId).className = 'status-indicator ' + (running ? 'running' : 'stopped');
+}
+
+// ═══════════ MAIN UPDATE ═══════════
+window.onMetricUpdate = function(data) {
+    const sys = data.system?.metrics || [];
+    const gpu = data.gpu?.metrics || [];
+
+    // ── Left: Gauges ──
+    const cpuAvg = getMetricValue(sys, 'cpu_percent_avg');
+    const memPct = getMetricValue(sys, 'memory_percent');
+    const gpuUtil = getMetricValue(gpu, 'gpu_utilization');
+    const cpuTemp = getMetricValue(sys, 'cpu_temperature', -1);
+    const gpuTemp = getMetricValue(gpu, 'gpu_temperature', -1);
+    const temp = cpuTemp > 0 ? cpuTemp : gpuTemp;
+
+    setGauge('cpu-gauge', cpuAvg);
+    setGauge('mem-gauge', memPct);
+    setGauge('gpu-gauge', gpuUtil);
+    setGauge('temp-gauge', temp > 0 ? temp : 0, 100);
+    if (temp <= 0) { const el = document.getElementById('temp-gauge-value'); if (el) el.textContent = 'N/A'; }
+
+    const cpuFill = document.getElementById('cpu-gauge-fill');
+    cpuFill.style.stroke = cpuAvg > 90 ? 'var(--red)' : cpuAvg > 70 ? 'var(--amber)' : 'var(--cyan)';
+    cpuFill.style.filter = `drop-shadow(0 0 6px ${cpuAvg > 90 ? 'var(--red)' : cpuAvg > 70 ? 'var(--amber)' : 'var(--cyan)'})`;
+    document.getElementById('mem-gauge-fill').style.stroke = memPct > 90 ? 'var(--red)' : memPct > 70 ? 'var(--amber)' : 'var(--green)';
+    document.getElementById('gpu-gauge-fill').style.stroke = gpuUtil > 90 ? 'var(--red)' : 'var(--amber)';
+    if (temp > 0) document.getElementById('temp-gauge-fill').style.stroke = temp > 85 ? 'var(--red)' : temp > 70 ? 'var(--amber)' : 'var(--magenta)';
+
+    const freq = getMetricValue(sys, 'cpu_freq_current');
+    document.getElementById('cpu-freq').textContent = freq > 0 ? freq.toFixed(0) + ' MHz' : '--';
+    document.getElementById('mem-detail').textContent = formatBytes(getMetricValue(sys, 'memory_used')) + ' / ' + formatBytes(getMetricValue(sys, 'memory_total'));
+    document.getElementById('gpu-mem-detail').textContent = formatBytes(getMetricValue(gpu, 'gpu_memory_used')) + ' / ' + formatBytes(getMetricValue(gpu, 'gpu_memory_total'));
+    document.getElementById('gpu-power').textContent = getMetricValue(gpu, 'gpu_power_draw').toFixed(0) + 'W / ' + getMetricValue(gpu, 'gpu_power_limit').toFixed(0) + 'W';
+    document.getElementById('gpu-fan').textContent = getMetricValue(gpu, 'gpu_fan_speed').toFixed(0) + '%';
+    document.getElementById('net-send').textContent = formatBytes(getMetricValue(sys, 'net_send_bytes_sec')) + '/s';
+    document.getElementById('net-recv').textContent = formatBytes(getMetricValue(sys, 'net_recv_bytes_sec')) + '/s';
+    document.getElementById('disk-read').textContent = formatBytes(getMetricValue(sys, 'disk_read_bytes_sec')) + '/s';
+    document.getElementById('disk-write').textContent = formatBytes(getMetricValue(sys, 'disk_write_bytes_sec')) + '/s';
+
+    // ── Center: Agent Cards ──
+    let activeCount = 0;
+    const claude = data.claude_code?.metrics || [];
+    const claudeR = getMetricValue(claude, 'claude_code_running');
+    if (claudeR) activeCount++;
+    setCardState('claude-card', 'claude-dot', claudeR);
+    document.getElementById('claude-status').textContent = claudeR ? '运行中' : '未运行';
+    document.getElementById('claude-status').style.color = claudeR ? 'var(--green)' : 'var(--red)';
+    document.getElementById('claude-procs').textContent = getMetricValue(claude, 'claude_code_process_count');
+    document.getElementById('claude-sessions').textContent = getMetricValue(claude, 'claude_code_total_sessions');
+    document.getElementById('claude-msgs').textContent = getMetricValue(claude, 'claude_code_total_messages');
+    document.getElementById('claude-mem').textContent = formatBytes(getMetricValue(claude, 'claude_code_memory_rss'));
+    document.getElementById('claude-cpu').textContent = getMetricValue(claude, 'claude_code_cpu_percent').toFixed(1) + '%';
+    document.getElementById('claude-uptime').textContent = formatDuration(getMetricValue(claude, 'claude_code_uptime'));
+    document.getElementById('claude-tokens').textContent = fmtNum(getMetricValue(claude, 'claude_code_input_tokens'));
+    document.getElementById('claude-mem-bar').style.width = getMetricValue(claude, 'claude_code_memory_percent') + '%';
+
+    const hermes = data.hermes?.metrics || [];
+    const hermesR = getMetricValue(hermes, 'hermes_running');
+    if (hermesR) activeCount++;
+    setCardState('hermes-card', 'hermes-dot', hermesR);
+    document.getElementById('hermes-status').textContent = hermesR ? '运行中' : '未运行';
+    document.getElementById('hermes-status').style.color = hermesR ? 'var(--green)' : 'var(--red)';
+    document.getElementById('hermes-sessions').textContent = getMetricValue(hermes, 'hermes_active_sessions');
+    document.getElementById('hermes-msgs').textContent = getMetricValue(hermes, 'hermes_total_messages');
+    document.getElementById('hermes-cost').textContent = '$' + getMetricValue(hermes, 'hermes_total_cost_usd').toFixed(4);
+    document.getElementById('hermes-in-tokens').textContent = fmtNum(getMetricValue(hermes, 'hermes_total_input_tokens'));
+    document.getElementById('hermes-out-tokens').textContent = fmtNum(getMetricValue(hermes, 'hermes_total_output_tokens'));
+    document.getElementById('hermes-tools').textContent = getMetricValue(hermes, 'hermes_hour_tool_calls');
+    document.getElementById('hermes-gateway').textContent = getMetricValue(hermes, 'hermes_gateway_running') ? '运行中' : '停止';
+    document.getElementById('hermes-cost-bar').style.width = Math.min(getMetricValue(hermes, 'hermes_total_cost_usd') * 1000, 100) + '%';
+
+    const codex = data.codex?.metrics || [];
+    const codexR = getMetricValue(codex, 'codex_running');
+    if (codexR) activeCount++;
+    setCardState('codex-card', 'codex-dot', codexR);
+    document.getElementById('codex-status').textContent = codexR ? '运行中' : '未运行';
+    document.getElementById('codex-status').style.color = codexR ? 'var(--green)' : 'var(--red)';
+    document.getElementById('codex-procs').textContent = getMetricValue(codex, 'codex_process_count');
+    document.getElementById('codex-threads').textContent = getMetricValue(codex, 'codex_active_threads');
+    document.getElementById('codex-tokens').textContent = fmtNum(getMetricValue(codex, 'codex_total_tokens'));
+    document.getElementById('codex-mem').textContent = formatBytes(getMetricValue(codex, 'codex_total_memory'));
+    document.getElementById('codex-errors').textContent = getMetricValue(codex, 'codex_hour_errors');
+    document.getElementById('codex-errors').style.color = getMetricValue(codex, 'codex_hour_errors') > 10 ? 'var(--red)' : 'var(--text-primary)';
+    document.getElementById('codex-plugins').textContent = getMetricValue(codex, 'codex_enabled_plugins');
+    const codexModelMetric = getMetric(codex, 'codex_config_model');
+    if (codexModelMetric?.tags?.model) document.getElementById('codex-model').textContent = codexModelMetric.tags.model;
+    document.getElementById('codex-mem-bar').style.width = Math.min(getMetricValue(codex, 'codex_total_memory') / (8 * 1024 * 1024 * 1024) * 100, 100) + '%';
+
+    const oc = data.openclaw?.metrics || [];
+    const ocI = getMetricValue(oc, 'openclaw_installed');
+    setCardState('openclaw-card', 'openclaw-dot', ocI);
+    document.getElementById('openclaw-status').textContent = ocI ? '已安装' : '未安装';
+    document.getElementById('openclaw-status').style.color = ocI ? 'var(--green)' : 'var(--text-dim)';
+    document.getElementById('openclaw-installed').textContent = ocI ? '是' : '否';
+
+    document.getElementById('active-count').textContent = activeCount;
+    document.getElementById('total-count').textContent = '4';
+    document.getElementById('sum-total-msgs').textContent = fmtNum(getMetricValue(claude, 'claude_code_total_messages') + getMetricValue(hermes, 'hermes_total_messages'));
+    document.getElementById('sum-total-tokens').textContent = fmtNum(getMetricValue(claude, 'claude_code_input_tokens') + getMetricValue(hermes, 'hermes_total_input_tokens') + getMetricValue(codex, 'codex_total_tokens'));
+    document.getElementById('sum-total-cost').textContent = '$' + getMetricValue(hermes, 'hermes_total_cost_usd').toFixed(4);
+    document.getElementById('sum-total-errors').textContent = getMetricValue(codex, 'codex_hour_errors');
+
+    // ── Right: Resource bars ──
+    updateRes(data);
+
+    // ── Right: Disk bars ──
+    const diskDiv = document.getElementById('disk-bars');
+    const diskMetrics = sys.filter(m => m.name === 'disk_percent');
+    if (diskMetrics.length > 0) {
+        diskDiv.innerHTML = diskMetrics.map(m => {
+            const v = m.value;
+            const color = v > 95 ? 'var(--red)' : v > 80 ? 'var(--amber)' : 'var(--green)';
+            return `<div style="margin-bottom:8px;">
+                <div style="display:flex;justify-content:space-between;font-size:0.68rem;margin-bottom:4px;">
+                    <span style="color:var(--text-dim);">${m.tags?.mountpoint || '?'}</span>
+                    <span style="color:var(--text-secondary);font-family:'JetBrains Mono';">${v.toFixed(1)}%</span>
+                </div>
+                <div style="height:5px;background:var(--border-dim);border-radius:3px;overflow:hidden;">
+                    <div style="height:100%;width:${v}%;background:${color};border-radius:3px;transition:width 0.5s;"></div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    // ── Right: Event detection ──
+    detectEvents(data);
+};
+
+// Initial data load
+fetch('/api/system/current').then(r=>r.json()).then(d=>{if(d.metrics?.length)window.onMetricUpdate({system:d});});
+fetch('/api/gpu/current').then(r=>r.json()).then(d=>{if(d.metrics?.length)window.onMetricUpdate({gpu:d});});
+</script>
+{% endblock %}

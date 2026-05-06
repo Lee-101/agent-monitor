@@ -1,0 +1,41 @@
+server:
+  host: "127.0.0.1"
+  port: 8501
+  debug: false
+
+collectors:
+  system:
+    enabled: true
+    interval_seconds: 2
+  gpu:
+    enabled: true
+    interval_seconds: 5
+  process:
+    enabled: true
+    interval_seconds: 5
+  hermes:
+    enabled: true
+    interval_seconds: 10
+  claude_code:
+    enabled: true
+    interval_seconds: 10
+  openclaw:
+    enabled: true
+    interval_seconds: 10
+
+storage:
+  database_path: "./data/monitor.db"
+  retention_days: 90
+  aggregation_enabled: true
+
+alerting:
+  enabled: true
+  rules_file: "./alert_rules.yaml"
+  notifiers:
+    - type: "desktop"
+    - type: "log"
+      path: "./data/alerts.log"
+
+dashboard:
+  title: "Agent Monitor"
+  refresh_interval_ms: 2000

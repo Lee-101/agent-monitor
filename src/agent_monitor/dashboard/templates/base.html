@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #060a12;
+            --bg-panel: #0c1220;
+            --bg-card: #111827;
+            --bg-card-hover: #162033;
+            --border-dim: #1a2744;
+            --border-glow: #1e3a5f;
+            --cyan: #00e5ff;
+            --cyan-dim: #00e5ff40;
+            --cyan-glow: #00e5ff20;
+            --amber: #ffab00;
+            --amber-dim: #ffab0040;
+            --magenta: #ff0066;
+            --magenta-dim: #ff006640;
+            --green: #00ff88;
+            --green-dim: #00ff8840;
+            --red: #ff3344;
+            --text-primary: #e8edf5;
+            --text-secondary: #7b8ba3;
+            --text-dim: #4a5568;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Noto Sans SC', 'JetBrains Mono', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* Noise texture overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* Scanline effect */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 229, 255, 0.008) 2px,
+                rgba(0, 229, 255, 0.008) 4px
+            );
+            pointer-events: none;
+            z-index: 9998;
+        }
+
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Glowing border panels */
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-dim);
+            border-radius: 6px;
+            position: relative;
+        }
+        .panel::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: 7px;
+            background: linear-gradient(135deg, var(--cyan-dim), transparent 50%, var(--cyan-dim));
+            opacity: 0.3;
+            z-index: -1;
+        }
+        .panel-header {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.72rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--cyan);
+            padding: 14px 18px 10px;
+            border-bottom: 1px solid var(--border-dim);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .panel-header::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: var(--cyan);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--cyan);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Gauge styles */
+        .gauge-container { position: relative; width: 100%; }
+        .gauge-svg { transform: rotate(-90deg); }
+        .gauge-track { fill: none; stroke: var(--border-dim); }
+        .gauge-fill {
+            fill: none;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            filter: drop-shadow(0 0 6px var(--cyan));
+        }
+        .gauge-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        .gauge-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .gauge-name {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-top: 2px;
+        }
+
+        /* Agent cards */
+        .agent-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            border-radius: 8px;
+            padding: 16px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .agent-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .agent-card:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-glow);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 229, 255, 0.08);
+        }
+        .agent-card:hover::before { opacity: 1; }
+        .agent-card.running { border-left: 3px solid var(--green); }
+        .agent-card.stopped { border-left: 3px solid var(--red); }
+        .agent-card.unknown { border-left: 3px solid var(--text-dim); }
+
+        /* Status indicator */
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+        .status-indicator.running {
+            background: var(--green);
+            box-shadow: 0 0 10px var(--green), 0 0 20px var(--green-dim);
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+        .status-indicator.stopped {
+            background: var(--red);
+            box-shadow: 0 0 6px var(--red);
+        }
+        .status-indicator.unknown {
+            background: var(--text-dim);
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 10px var(--green), 0 0 20px var(--green-dim); }
+            50% { box-shadow: 0 0 16px var(--green), 0 0 32px var(--green-dim); }
+        }
+
+        /* Metric rows */
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 7px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            font-size: 0.85rem;
+        }
+        .metric-row:last-child { border-bottom: none; }
+        .metric-label { color: var(--text-secondary); font-size: 0.82rem; }
+        .metric-value {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+
+        /* Chart container */
+        .chart-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            border-radius: 6px;
+            padding: 12px;
+        }
+
+        /* Alert banner */
+        .alert-item {
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 6px;
+            border-left: 3px solid;
+            animation: slide-in 0.3s ease-out;
+        }
+        .alert-info { background: rgba(0, 229, 255, 0.08); border-color: var(--cyan); color: var(--cyan); }
+        .alert-warning { background: rgba(255, 171, 0, 0.08); border-color: var(--amber); color: var(--amber); }
+        .alert-critical { background: rgba(255, 0, 102, 0.08); border-color: var(--magenta); color: var(--magenta); }
+
+        @keyframes slide-in {
+            from { transform: translateX(20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Nav bar */
+        .nav-bar {
+            background: linear-gradient(180deg, #0a1020, var(--bg-deep));
+            border-bottom: 1px solid var(--border-dim);
+            height: 48px;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            position: relative;
+        }
+        .nav-bar::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+            opacity: 0.5;
+        }
+        .nav-link {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.6rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 6px 14px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: var(--cyan);
+            background: var(--cyan-glow);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-dim); border-radius: 2px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--cyan-dim); }
+
+        /* Connection status */
+        .conn-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            display: inline-block;
+        }
+        .conn-connected { background: var(--green); box-shadow: 0 0 6px var(--green); }
+        .conn-disconnected { background: var(--red); box-shadow: 0 0 6px var(--red); }
+        .conn-connecting { background: var(--amber); animation: pulse-dot 1s infinite; }
+
+        /* ── Right column: event log stream ── */
+        .event-log-scroll {
+            overflow-y: auto;
+            max-height: 100%;
+        }
+        .evt-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 5px 10px;
+            border-left: 2px solid;
+            margin-bottom: 3px;
+            font-size: 0.72rem;
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(255,255,255,0.008);
+            border-radius: 0 3px 3px 0;
+            animation: slide-in 0.25s ease-out;
+        }
+        .evt-error   { border-color: var(--red);    color: var(--red);    background: rgba(255,51,68,0.04); }
+        .evt-warning { border-color: var(--amber);  color: var(--amber);  background: rgba(255,171,0,0.04); }
+        .evt-info    { border-color: var(--cyan);   color: var(--cyan);   background: rgba(0,229,255,0.02); }
+        .evt-ok      { border-color: var(--green);  color: var(--green);  background: rgba(0,255,136,0.02); }
+        .evt-ts   { color: var(--text-dim); font-size: 0.62rem; white-space: nowrap; flex-shrink: 0; }
+        .evt-src  { color: var(--text-secondary); font-weight: 600; flex-shrink: 0; }
+        .evt-msg  { color: var(--text-primary); word-break: break-all; }
+
+        /* ── Right column: stacked resource bar ── */
+        .res-track {
+            height: 12px;
+            background: var(--border-dim);
+            border-radius: 6px;
+            overflow: hidden;
+            display: flex;
+        }
+        .res-seg {
+            height: 100%;
+            transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+        }
+        .res-seg:first-child { border-radius: 6px 0 0 6px; }
+        .res-seg:last-child  { border-radius: 0 6px 6px 0; }
+
+        /* ── Back button (agent detail) ── */
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.6rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 6px 14px;
+            border: 1px solid var(--border-dim);
+            border-radius: 4px;
+            background: var(--bg-panel);
+            transition: all 0.25s ease;
+        }
+        .back-btn:hover {
+            color: var(--cyan);
+            border-color: var(--cyan-dim);
+            background: var(--cyan-glow);
+            box-shadow: 0 0 12px var(--cyan-dim);
+        }
+        .back-btn svg { width: 12px; height: 12px; fill: currentColor; }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation -->
+    <nav class="nav-bar">
+        <div class="flex items-center gap-3 mr-8">
+            <div class="font-orbitron text-sm font-bold tracking-wider" style="color: var(--cyan);">AGENT<span class="text-white">MONITOR</span></div>
+            <div class="text-xs font-mono" style="color: var(--text-dim);">v0.1.0</div>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="/" class="nav-link active">总览</a>
+            <a href="/history" class="nav-link">历史</a>
+            <a href="/docs" class="nav-link">接口</a>
+        </div>
+        <div class="ml-auto flex items-center gap-3">
+            <span class="text-xs font-mono" style="color: var(--text-dim);" id="clock">--:--:--</span>
+            <span class="conn-dot conn-connecting" id="conn-status" title="连接状态"></span>
+        </div>
+    </nav>
+
+    <!-- Main 3-Column Layout -->
+    <div style="display: grid; grid-template-columns: 380px 1fr 340px; height: calc(100vh - 48px); gap: 1px; background: var(--border-dim);">
+        {% block content %}{% endblock %}
+    </div>
+
+    <script>
+        // WebSocket
+        const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        let ws = null, reconnectTimer = null;
+
+        function connectWebSocket() {
+            ws = new WebSocket(`${wsProtocol}//${location.host}/ws/live`);
+            const dot = document.getElementById('conn-status');
+            dot.className = 'conn-dot conn-connecting';
+
+            ws.onopen = () => {
+                dot.className = 'conn-dot conn-connected';
+                if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+            };
+            ws.onmessage = (e) => {
+                try {
+                    const data = JSON.parse(e.data);
+                    if (typeof window.onMetricUpdate === 'function') window.onMetricUpdate(data);
+                } catch (err) { console.error('WS error:', err); }
+            };
+            ws.onclose = () => {
+                dot.className = 'conn-dot conn-disconnected';
+                reconnectTimer = setTimeout(connectWebSocket, 3000);
+            };
+            ws.onerror = () => ws.close();
+        }
+        connectWebSocket();
+
+        // Clock
+        setInterval(() => {
+            document.getElementById('clock').textContent = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+        }, 1000);
+
+        // Utility
+        function formatBytes(b) {
+            if (!b || b === 0) return '0 B';
+            const k = 1024, s = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(b) / Math.log(k));
+            return (b / Math.pow(k, i)).toFixed(1) + ' ' + s[i];
+        }
+        function formatDuration(s) {
+            if (s < 60) return Math.round(s) + '秒';
+            if (s < 3600) return Math.round(s / 60) + '分';
+            if (s < 86400) return (s / 3600).toFixed(1) + '时';
+            return (s / 86400).toFixed(1) + '天';
+        }
+        function getMetric(m, name) { return m?.find(x => x.name === name); }
+        function getMetricValue(m, name, def = 0) { const x = getMetric(m, name); return x ? x.value : def; }
+        function fmtNum(n) { return n >= 1e6 ? (n/1e6).toFixed(1) + 'M' : n >= 1e3 ? (n/1e3).toFixed(1) + 'K' : String(Math.round(n)); }
+
+        // Gauge helper
+        function setGauge(id, value, max = 100) {
+            const pct = Math.min(value / max, 1);
+            const circle = document.getElementById(id + '-fill');
+            if (!circle) return;
+            const r = parseFloat(circle.getAttribute('r'));
+            const circumference = 2 * Math.PI * r;
+            circle.style.strokeDasharray = circumference;
+            circle.style.strokeDashoffset = circumference * (1 - pct);
+            const valEl = document.getElementById(id + '-value');
+            if (valEl) valEl.textContent = value.toFixed(1) + '%';
+        }
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,48 @@
+rules:
+  - name: high_cpu
+    condition: "system.cpu_percent_avg > 90"
+    duration: "5m"
+    severity: warning
+    message: "CPU 使用率超过 90% 持续 5 分钟"
+
+  - name: high_memory
+    condition: "system.memory_percent > 90"
+    duration: "5m"
+    severity: warning
+    message: "内存使用率超过 90% 持续 5 分钟"
+
+  - name: high_gpu_temp
+    condition: "gpu.gpu_temperature > 85"
+    duration: "2m"
+    severity: critical
+    message: "GPU 温度超过 85°C"
+
+  - name: agent_down_claude
+    condition: "claude_code.claude_code_running == 0"
+    duration: "0s"
+    severity: info
+    message: "Claude Code 未运行"
+
+  - name: agent_down_hermes
+    condition: "hermes.hermes_running == 0"
+    duration: "0s"
+    severity: info
+    message: "Hermes Agent 未运行"
+
+  - name: disk_full
+    condition: "system.disk_percent > 95"
+    duration: "0s"
+    severity: critical
+    message: "磁盘空间不足 (使用率 > 95%)"
+
+  - name: codex_down
+    condition: "codex.codex_running == 0"
+    duration: "0s"
+    severity: info
+    message: "Codex 未运行"
+
+  - name: codex_high_errors
+    condition: "codex.codex_hour_errors > 20"
+    duration: "5m"
+    severity: warning
+    message: "Codex 错误率过高 (最近1小时超过20个错误)"
