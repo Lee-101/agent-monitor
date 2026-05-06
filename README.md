@@ -6,6 +6,7 @@
 
 ```bash
 # 安装（开发模式）
+git clone https://github.com/Lee-101/agent-monitor.git
 cd agent-monitor
 pip install -e .
 
